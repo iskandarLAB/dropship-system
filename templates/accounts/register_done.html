@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Application Submitted - Dropship Hub{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center pt-5">
+  <div class="col-md-6 text-center">
+    <div class="card p-5 shadow-sm border-0">
+      <i class="bi bi-clock-history text-warning display-3 mb-3"></i>
+      <h3 class="fw-bold">Registration Received!</h3>
+      <p class="text-muted mt-2">
+        Your dropshipper application has been submitted successfully and is currently <strong>awaiting Admin approval</strong>.
+      </p>
+      <div class="alert alert-light border text-start small my-3">
+        <i class="bi bi-info-circle text-primary me-2"></i> Our team verifies every applicant to maintain catalog quality and stock management. You will be able to log in once your account status is changed to <strong>Approved</strong>.
+      </div>
+      <div class="mt-3">
+        <a href="{% url 'accounts:login' %}" class="btn btn-primary px-4">Back to Login</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

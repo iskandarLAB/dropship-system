@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Stock Availability - Dropship Hub{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h3 class="fw-bold mb-1"><i class="bi bi-grid-3x3 text-primary me-2"></i>Live Inventory & Catalog</h3>
+    <p class="text-muted small mb-0">Check live stock counts before placing customer orders.</p>
+  </div>
+  <div>
+    <a href="{% url 'orders:new' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle me-1"></i> Place New Order</a>
+  </div>
+</div>
+
+<div class="row g-4">
+  {% for product in products %}
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <h5 class="fw-bold mb-0">{{ product.name }}</h5>
+            <span class="badge bg-light text-dark border">Total: {{ product.total_stock }}</span>
+          </div>
+          <p class="text-muted small mb-3">{{ product.description|default:"High quality apparel." }}</p>
+
+          <div class="p-2 bg-light rounded mb-3 small d-flex justify-content-between">
+            <div>
+              <span class="text-muted">Dropship Cost:</span>
+              <strong class="text-primary ms-1">RM {{ product.dropship_price }}</strong>
+            </div>
+            <div>
+              <span class="text-muted">Suggested SRP:</span>
+              <strong class="text-success ms-1">RM {{ product.suggested_retail_price }}</strong>
+            </div>
+          </div>
+
+          <h6 class="small text-uppercase text-muted fw-bold mb-2">Variants in Stock</h6>
+          <div class="list-group list-group-flush border-top border-bottom small">
+            {% for v in product.variants.all %}
+              <div class="list-group-item d-flex justify-content-between align-items-center px-0 py-1">
+                <div>
+                  <span class="fw-semibold">{{ v.colour }}</span> / <span class="badge bg-secondary">{{ v.size }}</span>
+                  <span class="text-muted ms-1"><code>{{ v.sku }}</code></span>
+                </div>
+                <div>
+                  {% if v.stock == 0 %}
+                    <span class="badge bg-danger">Sold Out</span>
+                  {% elif v.stock <= 10 %}
+                    <span class="badge bg-warning text-dark">Low: {{ v.stock }}</span>
+                  {% else %}
+                    <span class="badge bg-success">{{ v.stock }} left</span>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="card-footer bg-white border-0 pt-0 text-end">
+          <a href="{% url 'orders:new' %}" class="btn btn-sm btn-outline-primary w-100">Sell This Item</a>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="col-12 text-center py-5 text-muted">
+      No products active at the moment.
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

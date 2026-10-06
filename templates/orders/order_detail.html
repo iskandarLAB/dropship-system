@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% block title %}Order {{ order.order_no }} - Dropship Hub{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-9">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h3 class="fw-bold mb-1">{{ order.order_no }}</h3>
+        <span class="badge bg-{{ order.status_badge }} badge-status fs-6">{{ order.get_status_display }}</span>
+        <span class="text-muted small ms-2">Created: {{ order.created_at|date:"d M Y, H:i" }}</span>
+      </div>
+      <div class="d-flex gap-2">
+        {% if user.is_hq or user.is_admin_role %}
+          <a href="{% url 'orders:packing_slip' pk=order.pk %}" target="_blank" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-printer me-1"></i> Packing Slip
+          </a>
+        {% endif %}
+        {% if order.is_payable and user.is_dropshipper %}
+          <a href="{% url 'payments:start' order_id=order.pk %}" class="btn btn-primary btn-sm fw-bold">
+            <i class="bi bi-credit-card me-1"></i> Pay via FPX
+          </a>
+          <form method="post" action="{% url 'orders:cancel' pk=order.pk %}" onsubmit="return confirm('Cancel this order and release stock?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger btn-sm">Cancel Order</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if order.tracking_no %}
+      <div class="alert alert-info d-flex align-items-center mb-4 shadow-sm">
+        <i class="bi bi-truck fs-3 me-3 text-info"></i>
+        <div>
+          <div class="fw-bold">Shipped via {{ order.courier|default:"Courier" }}</div>
+          <div>Tracking Number: <code class="fs-6 fw-bold">{{ order.tracking_no }}</code></div>
+          <div class="small text-muted">Shipped on: {{ order.shipped_at|date:"d M Y, H:i" }}</div>
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="row g-4 mb-4">
+      <!-- Customer Information -->
+      <div class="col-md-6">
+        <div class="card p-3 shadow-sm border-0 h-100">
+          <h6 class="fw-bold text-muted text-uppercase small border-bottom pb-2">Customer Shipping Address</h6>
+          <div class="fw-bold fs-6 mt-1">{{ order.customer_name }}</div>
+          <div class="text-muted small mb-2"><i class="bi bi-telephone me-1"></i>{{ order.customer_phone }}</div>
+          <div class="small text-secondary">
+            {{ order.address|linebreaksbr }}<br>
+            {{ order.postcode }} {{ order.city }}<br>
+            <strong>{{ order.state }}</strong>
+          </div>
+          {% if order.notes %}
+            <div class="mt-3 p-2 bg-light rounded small">
+              <span class="text-muted fw-bold">Note:</span> {{ order.notes }}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Financial Breakdown -->
+      <div class="col-md-6">
+        <div class="card p-3 shadow-sm border-0 h-100">
+          <h6 class="fw-bold text-muted text-uppercase small border-bottom pb-2">Payment & Profit Breakdown</h6>
+          <div class="d-flex justify-content-between py-1 small">
+            <span class="text-muted">Dropship Item Subtotal:</span>
+            <span>RM {{ order.subtotal_cost }}</span>
+          </div>
+          <div class="d-flex justify-content-between py-1 small">
+            <span class="text-muted">Shipping Fee ({{ order.state }}):</span>
+            <span>RM {{ order.shipping_fee }}</span>
+          </div>
+          <div class="d-flex justify-content-between py-2 border-top border-bottom fw-bold">
+            <span>Total Paid to HQ (FPX):</span>
+            <span class="text-danger">RM {{ order.total_payable }}</span>
+          </div>
+          <div class="d-flex justify-content-between py-1 small mt-2">
+            <span class="text-muted">Customer Selling Price:</span>
+            <span class="fw-bold text-primary">RM {{ order.total_sales }}</span>
+          </div>
+          <div class="d-flex justify-content-between py-1 small text-success fw-bold">
+            <span>Your Profit:</span>
+            <span>+RM {{ order.profit }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Items list -->
+    <div class="card border-0 shadow-sm mb-4 overflow-hidden">
+      <div class="card-header bg-white fw-bold py-3">Ordered Apparel Items</div>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Item</th>
+              <th>SKU</th>
+              <th>Quantity</th>
+              <th>Cost Each</th>
+              <th>Selling Each</th>
+              <th class="text-end">Subtotal Cost</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+              <tr>
+                <td>
+                  <div class="fw-semibold">{{ item.variant.product.name }}</div>
+                  <div class="small text-muted">{{ item.variant.colour }} / {{ item.variant.size }}</div>
+                </td>
+                <td><code>{{ item.variant.sku }}</code></td>
+                <td><span class="badge bg-light text-dark border">{{ item.quantity }}</span></td>
+                <td>RM {{ item.unit_cost }}</td>
+                <td>RM {{ item.unit_sell_price }}</td>
+                <td class="text-end fw-semibold">RM {{ item.line_cost }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Payment records -->
+    {% if payments %}
+      <div class="card border-0 shadow-sm overflow-hidden mb-4">
+        <div class="card-header bg-white fw-bold py-3">Payment Attempts (CHIP FPX)</div>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0 small">
+            <thead class="table-light">
+              <tr>
+                <th>Date</th>
+                <th>Gateway</th>
+                <th>Purchase ID</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in payments %}
+                <tr>
+                  <td>{{ p.created_at|date:"d M Y, H:i" }}</td>
+                  <td><span class="badge bg-secondary">{{ p.gateway }}</span></td>
+                  <td><code>{{ p.purchase_id }}</code></td>
+                  <td>RM {{ p.amount }}</td>
+                  <td>
+                    {% if p.status == 'PAID' %}
+                      <span class="badge bg-success">PAID</span>
+                    {% else %}
+                      <span class="badge bg-secondary">{{ p.status }}</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="text-start">
+      <a href="{% url 'orders:list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Back to Orders</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

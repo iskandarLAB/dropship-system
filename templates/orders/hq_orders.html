@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% block title %}HQ Shipping Queue - Dropship Hub{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+  <div>
+    <h3 class="fw-bold mb-1"><i class="bi bi-truck text-primary me-2"></i>HQ Order Fulfillment</h3>
+    <p class="text-muted small mb-0">Pack and ship verified paid orders. Enter courier and tracking number to notify dropshippers.</p>
+  </div>
+  <div>
+    <a href="{% url 'orders:export_csv' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download me-1"></i> Export CSV</a>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-2">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div class="d-flex gap-2 flex-wrap align-items-center">
+        <span class="small fw-semibold text-muted me-1">Queue:</span>
+        <a href="?status=PAID" class="btn btn-sm {% if status == 'PAID' %}btn-primary{% else %}btn-outline-secondary{% endif %}">To Ship</a>
+        <a href="?status=SHIPPED" class="btn btn-sm {% if status == 'SHIPPED' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Shipped</a>
+        <a href="?status=COMPLETED" class="btn btn-sm {% if status == 'COMPLETED' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Completed</a>
+        <a href="?status=ALL" class="btn btn-sm {% if status == 'ALL' %}btn-primary{% else %}btn-outline-secondary{% endif %}">All</a>
+      </div>
+      <form method="get" class="d-flex gap-2">
+        <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Search order no / customer">
+        <button type="submit" class="btn btn-sm btn-dark">Search</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm overflow-hidden">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Order</th>
+          <th>Dropshipper</th>
+          <th>Customer & Destination</th>
+          <th>Items Ordered</th>
+          <th>Paid Amount</th>
+          <th>Status / Shipment</th>
+          <th class="text-end" style="min-width: 250px;">Fulfillment Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in orders %}
+          <tr>
+            <td>
+              <a href="{% url 'orders:detail' pk=o.pk %}" class="fw-bold text-decoration-none">{{ o.order_no }}</a>
+              <div class="small text-muted">{{ o.created_at|date:"d M, H:i" }}</div>
+            </td>
+            <td>
+              <div class="fw-semibold">{{ o.dropshipper.shop_name|default:o.dropshipper.username }}</div>
+              <div class="small text-muted">{{ o.dropshipper.phone }}</div>
+            </td>
+            <td>
+              <div class="fw-semibold">{{ o.customer_name }}</div>
+              <div class="small text-muted">{{ o.customer_phone }}</div>
+              <div class="small text-secondary">{{ o.city }}, <strong>{{ o.state }}</strong></div>
+            </td>
+            <td>
+              <ul class="list-unstyled mb-0 small">
+                {% for it in o.items.all %}
+                  <li>• <strong>{{ it.quantity }}x</strong> {{ it.variant }}</li>
+                {% endfor %}
+              </ul>
+            </td>
+            <td>
+              <strong>RM {{ o.total_payable }}</strong>
+              <div class="small text-muted">Ship: RM {{ o.shipping_fee }}</div>
+            </td>
+            <td>
+              <span class="badge bg-{{ o.status_badge }} badge-status">{{ o.get_status_display }}</span>
+              {% if o.tracking_no %}
+                <div class="mt-1 small">
+                  <span class="badge bg-light text-dark border">{{ o.courier }}</span><br>
+                  <code>{{ o.tracking_no }}</code>
+                </div>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <div class="d-flex justify-content-end gap-1 mb-1">
+                <a href="{% url 'orders:packing_slip' pk=o.pk %}" target="_blank" class="btn btn-sm btn-outline-secondary py-1 px-2" title="Print Slip">
+                  <i class="bi bi-printer"></i> Slip
+                </a>
+              </div>
+              {% if o.status == 'PAID' or o.status == 'SHIPPED' %}
+                <form method="post" action="{% url 'orders:hq_ship' pk=o.pk %}" class="d-flex flex-column gap-1">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <div class="input-group input-group-sm">
+                    <select name="courier" class="form-select form-select-sm" style="max-width: 110px;" required>
+                      <option value="J&T Express" {% if o.courier == 'J&T Express' %}selected{% endif %}>J&T</option>
+                      <option value="Ninja Van" {% if o.courier == 'Ninja Van' %}selected{% endif %}>NinjaVan</option>
+                      <option value="Pos Laju" {% if o.courier == 'Pos Laju' %}selected{% endif %}>PosLaju</option>
+                      <option value="DHL eCommerce" {% if o.courier == 'DHL eCommerce' %}selected{% endif %}>DHL</option>
+                      <option value="Flash Express" {% if o.courier == 'Flash Express' %}selected{% endif %}>Flash</option>
+                    </select>
+                    <input type="text" name="tracking_no" value="{{ o.tracking_no }}" class="form-control form-control-sm" placeholder="Tracking #" required>
+                    <button type="submit" class="btn btn-sm btn-primary">
+                      {% if o.status == 'PAID' %}Ship{% else %}Update{% endif %}
+                    </button>
+                  </div>
+                </form>
+              {% endif %}
+              {% if o.status == 'SHIPPED' %}
+                <form method="post" action="{% url 'orders:hq_complete' pk=o.pk %}" class="mt-1 text-end">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <button type="submit" class="btn btn-sm btn-outline-success py-0 px-2" style="font-size: 0.75rem;">
+                    <i class="bi bi-check2-circle"></i> Mark Completed
+                  </button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">No orders in this queue.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

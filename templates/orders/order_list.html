@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}My Orders - Dropship Hub{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h3 class="fw-bold mb-1"><i class="bi bi-receipt text-primary me-2"></i>My Customer Orders</h3>
+    <p class="text-muted small mb-0">Track customer orders, payments, and delivery tracking numbers.</p>
+  </div>
+  <div>
+    <a href="{% url 'orders:new' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle me-1"></i> New Order</a>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-2">
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+      <span class="small fw-semibold text-muted me-2">Filter Status:</span>
+      <a href="{% url 'orders:list' %}" class="btn btn-sm {% if not status %}btn-dark{% else %}btn-outline-secondary{% endif %}">All</a>
+      {% for s_val, s_label in statuses %}
+        <a href="?status={{ s_val }}" class="btn btn-sm {% if status == s_val %}btn-dark{% else %}btn-outline-secondary{% endif %}">{{ s_label }}</a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="card border-0 shadow-sm overflow-hidden">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Order No</th>
+          <th>Date</th>
+          <th>Customer</th>
+          <th>Items</th>
+          <th>HQ Cost</th>
+          <th>Sales / Profit</th>
+          <th>Status</th>
+          <th>Tracking</th>
+          <th class="text-end">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in orders %}
+          <tr>
+            <td>
+              <a href="{% url 'orders:detail' pk=o.pk %}" class="fw-bold text-decoration-none">{{ o.order_no }}</a>
+            </td>
+            <td class="small text-muted">{{ o.created_at|date:"d M Y, H:i" }}</td>
+            <td>
+              <div class="fw-semibold">{{ o.customer_name }}</div>
+              <div class="small text-muted">{{ o.city }}, {{ o.state }}</div>
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border">{{ o.items.count }} item(s)</span>
+            </td>
+            <td>RM {{ o.total_payable }}</td>
+            <td>
+              <div class="fw-bold text-primary">RM {{ o.total_sales }}</div>
+              <div class="small text-success">+RM {{ o.profit }}</div>
+            </td>
+            <td>
+              <span class="badge bg-{{ o.status_badge }} badge-status">{{ o.get_status_display }}</span>
+            </td>
+            <td>
+              {% if o.tracking_no %}
+                <div><span class="badge bg-info text-dark">{{ o.courier|default:"Courier" }}</span></div>
+                <code>{{ o.tracking_no }}</code>
+              {% else %}
+                <span class="text-muted small">Pending shipment</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {% if o.is_payable %}
+                <a href="{% url 'payments:start' order_id=o.pk %}" class="btn btn-sm btn-primary py-1 px-2 fw-semibold">
+                  <i class="bi bi-credit-card me-1"></i> Pay Now
+                </a>
+              {% else %}
+                <a href="{% url 'orders:detail' pk=o.pk %}" class="btn btn-sm btn-outline-secondary py-1 px-2">
+                  View
+                </a>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="9" class="text-center py-5 text-muted">
+              No orders found. <a href="{% url 'orders:new' %}" class="ms-1">Place your first order now</a>.
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

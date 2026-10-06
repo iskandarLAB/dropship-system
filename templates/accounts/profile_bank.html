@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}Payout Bank Details - Dropship Hub{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7 col-lg-6">
+    <div class="card p-4 shadow-sm border-0">
+      <div class="d-flex align-items-center mb-3 border-bottom pb-3">
+        <i class="bi bi-bank fs-1 text-primary me-3"></i>
+        <div>
+          <h4 class="fw-bold mb-0">Weekly Payout Bank Details</h4>
+          <p class="text-muted small mb-0">Your 15% commissions are paid directly to your bank account weekly via CHIP Send.</p>
+        </div>
+      </div>
+
+      <div class="alert alert-info py-2 small mb-4">
+        <i class="bi bi-shield-check me-1"></i> Payouts are transferred automatically every week. Ensure your full name matches your official bank account holder name to avoid transfer rejection.
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Receiving Bank Name</label>
+          {{ form.bank_name }}
+          {% if form.bank_name.errors %}<div class="text-danger small">{{ form.bank_name.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Bank Account Number</label>
+          {{ form.bank_account_number }}
+          <div class="form-text small">Enter digits only without spaces or hyphens.</div>
+          {% if form.bank_account_number.errors %}<div class="text-danger small">{{ form.bank_account_number.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Account Holder Full Name</label>
+          {{ form.bank_account_holder }}
+          <div class="form-text small">Must match the registered name on your bank account.</div>
+          {% if form.bank_account_holder.errors %}<div class="text-danger small">{{ form.bank_account_holder.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label small fw-semibold">IC / Passport Number (MyKad)</label>
+          {{ form.bank_id_number }}
+          <div class="form-text small">Required by Bank Negara Malaysia / CHIP Send bank verification KYC.</div>
+          {% if form.bank_id_number.errors %}<div class="text-danger small">{{ form.bank_id_number.errors.0 }}</div>{% endif %}
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+          <i class="bi bi-check-circle me-1"></i> Save Bank Information
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

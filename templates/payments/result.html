@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% block title %}Payment Result - Dropship Hub{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center pt-4">
+  <div class="col-md-7 text-center">
+    <div class="card p-5 shadow-sm border-0">
+      {% if order.status == 'PAID' or order.status == 'SHIPPED' or order.status == 'COMPLETED' %}
+        <div class="mb-3">
+          <i class="bi bi-check-circle-fill text-success display-2"></i>
+        </div>
+        <h3 class="fw-bold text-success">FPX Payment Successful!</h3>
+        <p class="text-muted mt-2">
+          Your payment of <strong>RM {{ order.total_payable }}</strong> has been verified and approved automatically.
+        </p>
+
+        <div class="card bg-light border-0 p-3 my-3 text-start small">
+          <div class="d-flex justify-content-between py-1">
+            <span class="text-muted">Order Number:</span>
+            <strong>{{ order.order_no }}</strong>
+          </div>
+          <div class="d-flex justify-content-between py-1">
+            <span class="text-muted">Recipient:</span>
+            <span>{{ order.customer_name }} ({{ order.state }})</span>
+          </div>
+          <div class="d-flex justify-content-between py-1">
+            <span class="text-muted">Fulfillment Status:</span>
+            <span class="badge bg-primary">Queued for HQ Packing</span>
+          </div>
+        </div>
+
+        <p class="text-muted small">
+          HQ will pack and dispatch the clothing items. Tracking number will appear on your dashboard once generated.
+        </p>
+
+        <div class="d-flex justify-content-center gap-2 mt-3">
+          <a href="{% url 'orders:detail' pk=order.pk %}" class="btn btn-outline-secondary">View Order</a>
+          <a href="{% url 'dashboard:dropshipper' %}" class="btn btn-primary">Go to Dashboard</a>
+        </div>
+
+      {% elif order.status == 'CANCELLED' %}
+        <div class="mb-3">
+          <i class="bi bi-x-circle-fill text-danger display-2"></i>
+        </div>
+        <h3 class="fw-bold text-danger">Payment Cancelled</h3>
+        <p class="text-muted mt-2">
+          The FPX payment attempt was not completed or failed. Reserved inventory has been restored.
+        </p>
+        <div class="mt-4">
+          <a href="{% url 'orders:new' %}" class="btn btn-primary">Try Placing Order Again</a>
+        </div>
+
+      {% elif order.status == 'NEEDS_REFUND' %}
+        <div class="mb-3">
+          <i class="bi bi-exclamation-triangle-fill text-warning display-2"></i>
+        </div>
+        <h3 class="fw-bold text-warning">Payment Received Past Expiry</h3>
+        <p class="text-muted mt-2">
+          Your payment arrived after the 30-minute reservation window and some items are out of stock. Admin has been notified for manual processing or refund.
+        </p>
+        <div class="mt-4">
+          <a href="{% url 'orders:detail' pk=order.pk %}" class="btn btn-outline-secondary">View Order Details</a>
+        </div>
+
+      {% else %}
+        <div class="mb-3">
+          <i class="bi bi-hourglass-split text-info display-2"></i>
+        </div>
+        <h3 class="fw-bold">Awaiting Payment Confirmation</h3>
+        <p class="text-muted mt-2">
+          Your bank transaction is still being processed. Please refresh this page or check your order status shortly.
+        </p>
+        <div class="mt-4 d-flex justify-content-center gap-2">
+          <a href="{{ request.get_full_path }}" class="btn btn-primary">Refresh Status</a>
+          <a href="{% url 'orders:detail' pk=order.pk %}" class="btn btn-outline-secondary">View Order</a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

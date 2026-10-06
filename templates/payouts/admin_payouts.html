@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% block title %}Weekly Commission Payouts - Admin{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+  <div>
+    <h3 class="fw-bold mb-1"><i class="bi bi-wallet2 text-primary me-2"></i>Weekly Dropshipper Commission Payouts</h3>
+    <p class="text-muted small mb-0">Automated bank disbursements powered by CHIP Send API.</p>
+  </div>
+  <div>
+    <form method="post" action="{% url 'payouts:admin_trigger_payout' %}" onsubmit="return confirm('Initiate weekly commission disbursement batch via CHIP Send?');">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary shadow-sm fw-semibold">
+        <i class="bi bi-send-check me-1"></i> Process Weekly Payout Batch Now
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Dropshippers with Pending Balances -->
+<div class="card border-0 shadow-sm mb-4 overflow-hidden">
+  <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+    <div>
+      <h5 class="fw-bold mb-0">Unpaid Dropshipper Commissions</h5>
+      <span class="text-muted small">Balances waiting for the next weekly payout cycle (Min RM 10.00).</span>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Dropshipper</th>
+          <th>Bank Information</th>
+          <th>Pending 15% Commission</th>
+          <th>Eligibility</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in eligible_list %}
+          <tr>
+            <td>
+              <div class="fw-semibold">{{ item.dropshipper.get_full_name|default:item.dropshipper.username }}</div>
+              <div class="small text-muted">{{ item.dropshipper.shop_name }} (@{{ item.dropshipper.username }})</div>
+            </td>
+            <td>
+              {% if item.has_bank %}
+                <div><strong>{{ item.dropshipper.bank_name }}</strong>: <code>{{ item.dropshipper.bank_account_number }}</code></div>
+                <div class="small text-muted">{{ item.dropshipper.bank_account_holder }}</div>
+              {% else %}
+                <span class="badge bg-danger">Bank details missing</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="fs-6 fw-bold text-success">RM {{ item.pending_amount }}</span>
+            </td>
+            <td>
+              {% if item.has_bank and item.pending_amount >= 10.00 %}
+                <span class="badge bg-success badge-status"><i class="bi bi-check-circle"></i> Ready for Payout</span>
+              {% elif not item.has_bank %}
+                <span class="badge bg-warning text-dark badge-status">Needs Bank Details</span>
+              {% else %}
+                <span class="badge bg-secondary badge-status">Below RM10 min</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="4" class="text-center py-4 text-muted">No pending commissions awaiting payout.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Historical Payout Batches -->
+<div class="card border-0 shadow-sm overflow-hidden">
+  <div class="card-header bg-white py-3">
+    <h5 class="fw-bold mb-0">Weekly Payout Batches History (CHIP Send)</h5>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Batch Number</th>
+          <th>Date Processed</th>
+          <th>Recipients</th>
+          <th>Total Disbursed</th>
+          <th>Status</th>
+          <th class="text-end">Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for batch in batches %}
+          <tr>
+            <td>
+              <strong>{{ batch.batch_no }}</strong>
+            </td>
+            <td class="small text-muted">{{ batch.created_at|date:"d M Y, H:i" }}</td>
+            <td><span class="badge bg-light text-dark border">{{ batch.payouts_count }} dropshipper(s)</span></td>
+            <td><strong>RM {{ batch.total_amount }}</strong></td>
+            <td>
+              {% if batch.status == 'COMPLETED' %}
+                <span class="badge bg-success badge-status">Completed</span>
+              {% elif batch.status == 'PARTIAL_FAILED' %}
+                <span class="badge bg-danger badge-status">Issues Reported</span>
+              {% else %}
+                <span class="badge bg-warning text-dark badge-status">{{ batch.status }}</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-outline-secondary py-0 px-2" type="button" data-bs-toggle="collapse" data-bs-target="#batch-{{ batch.pk }}">
+                View Transfers
+              </button>
+            </td>
+          </tr>
+          <tr class="collapse bg-light" id="batch-{{ batch.pk }}">
+            <td colspan="6" class="p-3">
+              <h6 class="fw-bold small text-uppercase text-muted mb-2">Transfers in this Batch:</h6>
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered bg-white mb-0 small">
+                  <thead>
+                    <tr>
+                      <th>Dropshipper</th>
+                      <th>Bank & Account</th>
+                      <th>Amount</th>
+                      <th>CHIP Send Instruction</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for p in batch.payouts.all %}
+                      <tr>
+                        <td>{{ p.dropshipper.username }} ({{ p.bank_account_holder }})</td>
+                        <td>{{ p.bank_name }} - {{ p.bank_account_number }}</td>
+                        <td><strong>RM {{ p.amount }}</strong></td>
+                        <td><code>{{ p.chip_send_instruction_id }}</code></td>
+                        <td><span class="badge bg-{{ p.status_badge }}">{{ p.status }}</span></td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" class="text-center py-4 text-muted">No payout batches generated yet.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

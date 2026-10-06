@@ -1,0 +1,372 @@
+{% extends 'base.html' %}
+{% block title %}Dropshipper Dashboard - Dropship Hub{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+  <div>
+    <h3 class="fw-bold mb-1">Welcome back, {{ user.shop_name|default:user.username }}!</h3>
+    <p class="text-muted small mb-0">Promote your store link, earn 15% commission on apparel sales, and receive weekly bank payouts via CHIP Send.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <div class="btn-group">
+      <a href="?period=today" class="btn btn-sm {% if period == 'today' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Today</a>
+      <a href="?period=7d" class="btn btn-sm {% if period == '7d' %}btn-primary{% else %}btn-outline-secondary{% endif %}">7 Days</a>
+      <a href="?period=30d" class="btn btn-sm {% if period == '30d' %}btn-primary{% else %}btn-outline-secondary{% endif %}">30 Days</a>
+      <a href="?period=month" class="btn btn-sm {% if period == 'month' %}btn-primary{% else %}btn-outline-secondary{% endif %}">This Month</a>
+      <a href="?period=all" class="btn btn-sm {% if period == 'all' %}btn-primary{% else %}btn-outline-secondary{% endif %}">All Time</a>
+    </div>
+    <a href="{% url 'orders:new' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle me-1"></i> Submit Customer Order</a>
+  </div>
+</div>
+
+<!-- Referral Store Link Banner -->
+<div class="card p-3 shadow-sm border-0 mb-4 bg-primary text-white" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);">
+  <div class="row align-items-center g-2">
+    <div class="col-md-5">
+      <h6 class="fw-bold mb-0 text-white"><i class="bi bi-link-45deg fs-5 me-1"></i> Your Official Storefront Marketing Link</h6>
+      <div class="small opacity-75">Share this link in your social media ads & bios. 15% commission is automatically credited to you.</div>
+    </div>
+    <div class="col-md-7">
+      <div class="input-group">
+        <input type="text" id="affiliateLink" value="{{ store_url }}" class="form-control form-control-sm bg-white" readonly>
+        <button class="btn btn-light btn-sm fw-bold px-3" type="button" onclick="navigator.clipboard.writeText(document.getElementById('affiliateLink').value); alert('Storefront link copied to clipboard!');">
+          <i class="bi bi-clipboard me-1"></i> Copy Link
+        </button>
+        <a href="{{ store_url }}" target="_blank" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-box-arrow-up-right"></i> Open
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bank Account Setup Warning if missing -->
+{% if not user.has_payout_bank_setup %}
+  <div class="alert alert-warning d-flex align-items-center shadow-sm mb-4" role="alert">
+    <i class="bi bi-exclamation-triangle-fill fs-3 me-3 text-warning"></i>
+    <div class="flex-grow-1">
+      <strong>Action Required: Add your Payout Bank Account</strong>
+      <div class="small">We need your receiving bank name and account number to transfer your weekly 15% commissions via CHIP Send.</div>
+    </div>
+    <a href="{% url 'accounts:profile_bank' %}" class="btn btn-warning btn-sm fw-bold">Set Up Bank Now</a>
+  </div>
+{% endif %}
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-lg-3">
+    <div class="card p-3 shadow-sm border-0 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-muted small text-uppercase fw-bold">Customer Sales</span>
+        <span class="badge bg-primary-subtle text-primary p-2 rounded-circle"><i class="bi bi-cart-check fs-5"></i></span>
+      </div>
+      <div class="fs-3 fw-bold text-primary">RM {{ total_sales }}</div>
+      <div class="text-muted small">Total clothing retail revenue generated</div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-lg-3">
+    <div class="card p-3 shadow-sm border-0 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-muted small text-uppercase fw-bold">Earned Commission (15%)</span>
+        <span class="badge bg-success-subtle text-success p-2 rounded-circle"><i class="bi bi-cash-coin fs-5"></i></span>
+      </div>
+      <div class="fs-3 fw-bold text-success">+RM {{ commission_stats.total_earned }}</div>
+      <div class="text-muted small">All-time 15% profit from customer sales</div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-lg-3">
+    <div class="card p-3 shadow-sm border-0 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-muted small text-uppercase fw-bold">Pending Weekly Payout</span>
+        <span class="badge bg-warning-subtle text-warning p-2 rounded-circle"><i class="bi bi-clock-history fs-5"></i></span>
+      </div>
+      <div class="fs-3 fw-bold text-warning">RM {{ commission_stats.pending_payout }}</div>
+      <div class="text-muted small">Queued for next weekly bank disbursement</div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-lg-3">
+    <div class="card p-3 shadow-sm border-0 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-muted small text-uppercase fw-bold">Paid to Bank</span>
+        <span class="badge bg-info-subtle text-info p-2 rounded-circle"><i class="bi bi-bank fs-5"></i></span>
+      </div>
+      <div class="fs-3 fw-bold text-dark">RM {{ commission_stats.paid_out }}</div>
+      <div class="text-muted small">Transferred to your bank via CHIP Send</div>
+    </div>
+  </div>
+</div>
+
+<!-- Dropshipper Sales Leaderboard (Papan Pendahulu) -->
+<div class="card p-4 shadow-sm border-0 mb-4 bg-white rounded-3">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+      <div class="d-flex align-items-center gap-2">
+        <span class="fs-4">🏆</span>
+        <h4 class="fw-bold mb-0" style="font-family: 'Times New Roman', Georgia, serif;">Papan Pendahulu Jualan Dropshipper</h4>
+        <span class="badge bg-warning text-dark fw-bold px-2 py-1" style="font-size: 0.7rem;"><i class="bi bi-fire me-1"></i> TOP SELLER</span>
+      </div>
+      <p class="text-muted small mb-0 mt-1">Berlumba jualan tertinggi untuk membuktikan prestasi dan memenangi ganjaran eksklusif Elrah Exclusive!</p>
+    </div>
+    <!-- Timeframe Switcher -->
+    <div class="btn-group btn-group-sm" role="group">
+      <a href="?period={{ period }}&ranking_time=month" class="btn {% if ranking_time == 'month' %}btn-dark fw-bold{% else %}btn-outline-secondary{% endif %}">
+        <i class="bi bi-calendar-month me-1"></i> Bulan Ini
+      </a>
+      <a href="?period={{ period }}&ranking_time=all" class="btn {% if ranking_time == 'all' %}btn-dark fw-bold{% else %}btn-outline-secondary{% endif %}">
+        <i class="bi bi-trophy me-1"></i> Sepanjang Masa
+      </a>
+    </div>
+  </div>
+
+  <!-- Your Standing Card / Motivational Banner -->
+  <div class="p-3 mb-4 rounded-3 border {% if user_rank == 1 %}bg-warning-subtle border-warning{% elif user_rank and user_rank <= 3 %}bg-primary-subtle border-primary-subtle{% else %}bg-light border-secondary-subtle{% endif %}">
+    <div class="row align-items-center g-3">
+      <div class="col-md-7 d-flex align-items-center gap-3">
+        <div class="text-center rounded-circle {% if user_rank == 1 %}bg-warning text-dark{% elif user_rank == 2 %}bg-secondary text-white{% elif user_rank == 3 %}bg-warning-subtle text-dark border border-warning{% else %}bg-white border text-dark{% endif %}" style="width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; font-weight: bold; flex-shrink: 0;">
+          {% if user_rank == 1 %}🥇{% elif user_rank == 2 %}🥈{% elif user_rank == 3 %}🥉{% else %}#{{ user_rank|default:"-" }}{% endif %}
+        </div>
+        <div>
+          <div class="fw-bold fs-6">
+            Kedudukan Anda: 
+            {% if user_rank == 1 %}
+              <span class="text-success fw-bolder">Juara #1 (Mendahului Carta!) 👑</span>
+            {% elif user_rank == 2 %}
+              <span class="text-primary fw-bolder">Tempat Ke-2 (Naib Juara) 🥈</span>
+            {% elif user_rank == 3 %}
+              <span class="text-warning-emphasis fw-bolder">Tempat Ke-3 (Podium) 🥉</span>
+            {% elif user_rank %}
+              <span class="text-dark fw-bolder">Ranking #{{ user_rank }}</span>
+            {% else %}
+              <span class="text-muted">Belum ada rekod jualan</span>
+            {% endif %}
+          </div>
+          <div class="small text-muted mt-1">
+            {% if user_rank == 1 %}
+              🔥 Mantap! Anda memegang takhta jualan tertinggi dropshipper Elrah Exclusive pada masa ini. Teruskan momentum!
+            {% elif gap_to_next_rank %}
+              ⚡ Hanya beza <strong class="text-dark">RM {{ gap_to_next_rank }}</strong> untuk memintas <strong class="text-primary">{{ rank_ahead_name }}</strong> dan naik ke ranking seterusnya!
+            {% else %}
+              Kongsikan link kedai affiliate anda sekarang untuk mula kumpul jualan dan panjat carta ranking!
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="col-md-5 text-md-end">
+        <div class="d-inline-block bg-white p-2 px-3 rounded-3 border text-start shadow-xs">
+          <span class="text-muted small d-block">Jumlah Jualan Anda:</span>
+          <span class="fs-5 fw-bold text-dark">RM {{ user_rank_sales }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaderboard Table -->
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th style="width: 75px;" class="text-center">Rank</th>
+          <th>Nama Butik / Dropshipper</th>
+          <th class="text-center">Pesanan Selesai</th>
+          <th class="text-end">Jumlah Jualan (RM)</th>
+          <th class="text-end">Anggaran Komisen (15%)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in leaderboard %}
+          <tr class="{% if item.is_current_user %}table-warning fw-semibold border-start border-3 border-warning{% endif %}">
+            <td class="text-center">
+              {% if item.rank == 1 %}
+                <span class="badge bg-warning text-dark fs-6 px-2 py-1 shadow-xs" title="Juara 1">🥇 #1</span>
+              {% elif item.rank == 2 %}
+                <span class="badge bg-secondary text-white fs-6 px-2 py-1 shadow-xs" title="Tempat Ke-2">🥈 #2</span>
+              {% elif item.rank == 3 %}
+                <span class="badge bg-danger-subtle text-danger-emphasis fs-6 px-2 py-1 shadow-xs" title="Tempat Ke-3">🥉 #3</span>
+              {% else %}
+                <span class="text-muted fw-bold">#{{ item.rank }}</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <span class="fw-bold">{{ item.name }}</span>
+                {% if item.is_current_user %}
+                  <span class="badge bg-primary text-white" style="font-size: 0.65rem;">ANDA</span>
+                {% endif %}
+                {% if item.rank == 1 %}
+                  <span class="badge bg-warning-subtle text-dark border border-warning-subtle" style="font-size: 0.65rem;">Top Performer</span>
+                {% endif %}
+              </div>
+            </td>
+            <td class="text-center">
+              <span class="badge bg-light text-dark border px-2 py-1">{{ item.orders_count }} order</span>
+            </td>
+            <td class="text-end fw-bold text-dark">
+              RM {{ item.total_sales }}
+            </td>
+            <td class="text-end text-success fw-bold">
+              +RM {{ item.commission_est }}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5" class="text-center py-4 text-muted">
+              Belum ada jualan direkodkan untuk tempoh ini. Jadilah yang pertama mencipta rekod jualan!
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Sales Trend Chart -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-8">
+    <div class="card p-4 shadow-sm border-0 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0">Sales Trend (Last 30 Days)</h5>
+        <span class="text-muted small">Updated live</span>
+      </div>
+      <div style="height: 280px; position: relative;">
+        <canvas id="salesChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card p-4 shadow-sm border-0 h-100">
+      <h5 class="fw-bold mb-3">Quick Navigation</h5>
+      <div class="d-grid gap-2 mb-4">
+        <a href="{% url 'payouts:dropshipper_payouts' %}" class="btn btn-outline-success py-2 text-start d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-wallet2 me-2"></i> Commission Ledger & Payouts</span>
+          <i class="bi bi-chevron-right"></i>
+        </a>
+        <a href="{% url 'accounts:profile_bank' %}" class="btn btn-outline-secondary py-2 text-start d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-bank me-2"></i> Payout Bank Account Setup</span>
+          <i class="bi bi-chevron-right"></i>
+        </a>
+        <a href="{% url 'orders:list' %}" class="btn btn-outline-secondary py-2 text-start d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-receipt me-2"></i> Track Customer Deliveries</span>
+          <i class="bi bi-chevron-right"></i>
+        </a>
+        <a href="{% url 'catalog:stock_list' %}" class="btn btn-outline-secondary py-2 text-start d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-grid-3x3 me-2"></i> Live Apparel Inventory</span>
+          <i class="bi bi-chevron-right"></i>
+        </a>
+      </div>
+
+      {% if stock_freshness %}
+        <div class="p-3 rounded {% if stock_freshness.is_stale %}bg-danger-subtle border border-danger-subtle{% else %}bg-light{% endif %}">
+          <div class="fw-bold small {% if stock_freshness.is_stale %}text-danger{% else %}text-muted{% endif %}">
+            <i class="bi bi-info-circle me-1"></i> HQ Inventory Verification
+          </div>
+          <div class="small mt-1 text-secondary">
+            HQ updates physical counts every 24h. Last update was <strong>{{ stock_freshness.latest|date:"d M Y, H:i"|default:"recently" }}</strong>.
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Stock Availability Table -->
+<div class="card border-0 shadow-sm overflow-hidden">
+  <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+    <div>
+      <h5 class="fw-bold mb-0">Apparel Products & Commission Potential</h5>
+      <span class="text-muted small">Promote these active items to earn 15% commission per sale</span>
+    </div>
+    <a href="{% url 'catalog:stock_list' %}" class="btn btn-outline-primary btn-sm">Full Catalog</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Product</th>
+          <th>Variant</th>
+          <th>SKU</th>
+          <th>Customer Retail (SRP)</th>
+          <th>Your Commission (15%)</th>
+          <th>Available Stock</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in products %}
+          {% for v in p.variants.all %}
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ p.name }}</div>
+              </td>
+              <td>
+                <span class="fw-semibold">{{ v.colour }}</span> / <span class="badge bg-secondary">{{ v.size }}</span>
+              </td>
+              <td><code>{{ v.sku }}</code></td>
+              <td><strong>RM {{ p.suggested_retail_price }}</strong></td>
+              <td><span class="badge bg-success-subtle text-success border border-success-subtle py-1 px-2 fw-bold">+RM {{ p.suggested_retail_price|floatformat:2 }} × 15%</span></td>
+              <td>
+                {% if v.stock == 0 %}
+                  <span class="badge bg-danger badge-status">Sold Out</span>
+                {% elif v.stock <= 10 %}
+                  <span class="badge bg-warning text-dark badge-status">Low: {{ v.stock }} left</span>
+                {% else %}
+                  <span class="badge bg-success badge-status">{{ v.stock }} in stock</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const ctx = document.getElementById('salesChart').getContext('2d');
+  const labels = {{ chart_labels_json|safe }};
+  const data = {{ chart_data_json|safe }};
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Daily Sales (RM)',
+        data: data,
+        borderColor: '#0d6efd',
+        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+        fill: true,
+        tension: 0.3,
+        borderWidth: 2,
+        pointRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: value => 'RM ' + value
+          }
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: context => `Sales: RM ${context.raw.toFixed(2)}`
+          }
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}

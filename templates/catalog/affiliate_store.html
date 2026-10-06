@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% block title %}Elrah Exclusive | {{ dropshipper.shop_name|default:dropshipper.username }}{% endblock %}
+
+{% block content %}
+<!-- Elrah Exclusive Hero Header -->
+<div class="p-4 p-md-5 mb-4 rounded-4 text-white shadow-lg position-relative overflow-hidden" 
+     style="background: linear-gradient(135deg, #0a0a0a 0%, #171717 50%, #262626 100%); border-bottom: 3px solid #d4af37;">
+  <div class="row align-items-center position-relative" style="z-index: 2;">
+    <div class="col-lg-8">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge bg-warning text-dark px-3 py-1 fw-bold text-uppercase" style="letter-spacing: 1px; font-size: 0.75rem;">
+          <i class="bi bi-patch-check-fill me-1"></i> Rakan Affiliate Rasmi Elrah Exclusive
+        </span>
+      </div>
+      <h1 class="display-5 fw-bold text-white mb-2" style="font-family: 'Times New Roman', Georgia, serif; letter-spacing: 0.5px;">
+        {{ dropshipper.shop_name|default:dropshipper.username }}
+      </h1>
+      <p class="lead my-2 text-light" style="opacity: 0.9;">
+        Koleksi Eksklusif Baju Melayu, Kurta & Busana Tradisional Melayu Moden. Pesanan anda diproses, dibungkus dan dihantar terus dari <strong>Pusat Pengedaran Utama HQ Elrah Exclusive</strong>.
+      </p>
+
+      <div class="d-flex flex-wrap align-items-center gap-3 mt-4 small text-light opacity-90">
+        <div><i class="bi bi-shield-check text-warning me-1"></i> <strong>100% Original</strong> Elrah Exclusive</div>
+        <div><i class="bi bi-gift text-warning me-1"></i> <strong>FREE</strong> Set Butang & Pin Rantai Kristal</div>
+        <div><i class="bi bi-truck text-warning me-1"></i> Pos Laju & J&T Express ke Seluruh Malaysia</div>
+        <div><i class="bi bi-bank text-warning me-1"></i> Bayaran Selamat FPX Online Banking</div>
+      </div>
+    </div>
+    <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
+      <a href="{% url 'catalog:affiliate_order' dropshipper.username %}" class="btn btn-warning btn-lg px-4 py-3 fw-bold shadow-sm" style="background-color: #d4af37; border-color: #d4af37; color: #111;">
+        <i class="bi bi-bag-check-fill me-1"></i> Tempah Sekarang (FPX)
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Promo Banner -->
+<div class="alert alert-dark d-flex align-items-center justify-content-between p-3 rounded-3 mb-4 border border-secondary shadow-sm" style="background-color: #1a1a1a; color: #f5f5f5;">
+  <div class="d-flex align-items-center">
+    <span class="fs-4 me-3">🎁</span>
+    <div>
+      <strong class="text-warning">Tawaran Istimewa Raya & Kenduri:</strong> Setiap pembelian Baju Melayu Elrah Exclusive disertakan dengan <strong>Kotak Eksklusif</strong>, <strong>5 Biji Butang Signature</strong>, dan <strong>Pin Rantai Kerongsang</strong> secara percuma!
+    </div>
+  </div>
+  <a href="{% url 'catalog:affiliate_order' dropshipper.username %}" class="btn btn-outline-warning btn-sm fw-semibold ms-3 text-nowrap">Beli Sekarang</a>
+</div>
+
+<!-- Products Catalog Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h3 class="fw-bold mb-0" style="font-family: 'Times New Roman', Georgia, serif;">Koleksi Rasmi Elrah Exclusive</h3>
+    <p class="text-muted small mb-0">Pilih busana pilihan anda. Harga runcit rasmi yang dikawal oleh HQ Elrah Exclusive.</p>
+  </div>
+</div>
+
+<!-- Products Grid -->
+<div class="row g-4">
+  {% for product in products %}
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 shadow-sm border rounded-3 overflow-hidden">
+        <div class="card-header bg-dark text-white py-3 border-bottom d-flex justify-content-between align-items-center">
+          <span class="badge bg-warning text-dark fw-bold" style="font-size: 0.7rem; letter-spacing: 0.5px;">ELRAH EXCLUSIVE</span>
+          <span class="badge bg-success-subtle text-success border border-success-subtle small">Stok Tersedia</span>
+        </div>
+        <div class="card-body d-flex flex-column">
+          <h5 class="fw-bold mb-2 text-dark" style="font-family: 'Times New Roman', Georgia, serif;">{{ product.name }}</h5>
+          <p class="text-muted small mb-3 flex-grow-1" style="line-height: 1.5;">{{ product.description }}</p>
+
+          <div class="p-3 bg-light rounded-3 mb-3 border">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <span class="text-muted small d-block">Harga Runcit Rasmi:</span>
+                <span class="badge bg-warning-subtle text-dark border border-warning-subtle small"><i class="bi bi-tag-fill me-1"></i> Kawalan HQ</span>
+              </div>
+              <div class="fs-3 fw-bold text-dark" style="font-family: 'Times New Roman', Georgia, serif;">
+                RM {{ product.suggested_retail_price }}
+              </div>
+            </div>
+          </div>
+
+          <h6 class="small text-uppercase text-secondary fw-bold mb-2" style="font-size: 0.75rem;">Variasi Warna & Saiz Tersedia:</h6>
+          <div class="d-flex flex-wrap gap-1 mb-3">
+            {% for v in product.variants.all %}
+              {% if v.stock > 0 %}
+                <span class="badge bg-white text-dark border py-1 px-2 small shadow-xs" title="Baki stok: {{ v.stock }}">
+                  {{ v.colour }} <span class="text-muted">({{ v.size }})</span>
+                </span>
+              {% endif %}
+            {% empty %}
+              <span class="text-muted small">Tiada variasi</span>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="card-footer bg-white border-0 pt-0 pb-3">
+          <a href="{% url 'catalog:affiliate_order' dropshipper.username %}" class="btn btn-dark w-100 py-2 fw-bold d-flex justify-content-center align-items-center gap-1 shadow-sm">
+            <i class="bi bi-cart-check"></i> Tempah {{ product.name }}
+          </a>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <div class="col-12 text-center py-5 text-muted">
+      Tiada produk yang disenaraikan pada masa ini.
+    </div>
+  {% endfor %}
+</div>
+
+<!-- Customer Trust Footer -->
+<div class="card bg-light border-0 rounded-4 mt-5 p-4 text-center">
+  <div class="row g-4 justify-content-center">
+    <div class="col-md-3">
+      <div class="fs-2 mb-1">👔</div>
+      <h6 class="fw-bold mb-1">Kualiti Jahitan Butik</h6>
+      <p class="text-muted small mb-0">Kemasan jahitan tepi kemas dengan fabrik import antarabangsa.</p>
+    </div>
+    <div class="col-md-3">
+      <div class="fs-2 mb-1">📦</div>
+      <h6 class="fw-bold mb-1">Penghantaran Segera</h6>
+      <p class="text-muted small mb-0">Pesanan dipos terus dari warehouse HQ dalam tempoh 24 jam waktu bekerja.</p>
+    </div>
+    <div class="col-md-3">
+      <div class="fs-2 mb-1">🔒</div>
+      <h6 class="fw-bold mb-1">FPX Online Banking</h6>
+      <p class="text-muted small mb-0">Pembayaran terus melalui gerbang pembayaran sah & berlesen CHIP.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

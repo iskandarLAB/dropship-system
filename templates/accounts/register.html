@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}Register Dropshipper - Dropship Hub{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-7 col-lg-6">
+    <div class="card p-4 shadow-sm border-0">
+      <div class="text-center mb-4">
+        <i class="bi bi-person-badge-fill text-primary fs-1"></i>
+        <h3 class="fw-bold mt-2">Dropshipper Registration</h3>
+        <p class="text-muted small">Submit your details. Accounts will be verified & approved by Admin.</p>
+      </div>
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger py-2 small">
+            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Full Name</label>
+            <input type="text" name="first_name" class="form-control {% if form.first_name.errors %}is-invalid{% endif %}" required value="{{ form.first_name.value|default:'' }}">
+            {% if form.first_name.errors %}<div class="invalid-feedback">{{ form.first_name.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Shop / Brand Name</label>
+            <input type="text" name="shop_name" class="form-control {% if form.shop_name.errors %}is-invalid{% endif %}" placeholder="e.g. Trendy Wardrobe" required value="{{ form.shop_name.value|default:'' }}">
+            {% if form.shop_name.errors %}<div class="invalid-feedback">{{ form.shop_name.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Email Address</label>
+            <input type="email" name="email" class="form-control {% if form.email.errors %}is-invalid{% endif %}" required value="{{ form.email.value|default:'' }}">
+            {% if form.email.errors %}<div class="invalid-feedback">{{ form.email.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Phone (WhatsApp)</label>
+            <input type="text" name="phone" class="form-control {% if form.phone.errors %}is-invalid{% endif %}" placeholder="e.g. 0123456789" required value="{{ form.phone.value|default:'' }}">
+            {% if form.phone.errors %}<div class="invalid-feedback">{{ form.phone.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="col-12">
+            <label class="form-label small fw-semibold">Username</label>
+            <input type="text" name="username" class="form-control {% if form.username.errors %}is-invalid{% endif %}" required value="{{ form.username.value|default:'' }}">
+            {% if form.username.errors %}<div class="invalid-feedback">{{ form.username.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Password</label>
+            <input type="password" name="password" class="form-control {% if form.password.errors %}is-invalid{% endif %}" required>
+            {% if form.password.errors %}<div class="invalid-feedback">{{ form.password.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Confirm Password</label>
+            <input type="password" name="password_confirm" class="form-control {% if form.password_confirm.errors %}is-invalid{% endif %}" required>
+            {% if form.password_confirm.errors %}<div class="invalid-feedback">{{ form.password_confirm.errors.0 }}</div>{% endif %}
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 py-2 mt-4 fw-semibold">Submit Application</button>
+      </form>
+
+      <div class="text-center mt-3 pt-2">
+        <a href="{% url 'accounts:login' %}" class="small text-decoration-none">Already have an approved account? Log in</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

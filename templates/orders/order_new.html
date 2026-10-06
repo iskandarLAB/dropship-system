@@ -1,0 +1,287 @@
+{% extends 'base.html' %}
+{% block title %}Create New Customer Order - Dropship Hub{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-10">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h3 class="fw-bold mb-1"><i class="bi bi-cart-plus text-primary me-2"></i>Submit Customer Order</h3>
+        <p class="text-muted small mb-0">Enter your customer delivery details, select clothing items, and pay HQ cost via FPX.</p>
+      </div>
+      <div>
+        <a href="{% url 'orders:list' %}" class="btn btn-outline-secondary btn-sm">View My Orders</a>
+      </div>
+    </div>
+
+    {% if item_errors %}
+      <div class="alert alert-danger shadow-sm mb-4">
+        <h6 class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i> Please correct the following errors:</h6>
+        <ul class="mb-0 small">
+          {% for err in item_errors %}
+            <li>{{ err }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <form method="post" id="orderForm">
+      {% csrf_token %}
+      <div class="row g-4">
+        <!-- Customer Details -->
+        <div class="col-md-5">
+          <div class="card p-3 shadow-sm border-0 h-100">
+            <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="bi bi-person-lines-fill me-2 text-primary"></i>Recipient Details</h5>
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Customer Full Name</label>
+              {{ form.customer_name }}
+              {% if form.customer_name.errors %}<div class="text-danger small">{{ form.customer_name.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Phone Number</label>
+              {{ form.customer_phone }}
+              {% if form.customer_phone.errors %}<div class="text-danger small">{{ form.customer_phone.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">Delivery Address</label>
+              {{ form.address }}
+              {% if form.address.errors %}<div class="text-danger small">{{ form.address.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label small fw-semibold">Postcode</label>
+                {{ form.postcode }}
+                {% if form.postcode.errors %}<div class="text-danger small">{{ form.postcode.errors.0 }}</div>{% endif %}
+              </div>
+              <div class="col-6">
+                <label class="form-label small fw-semibold">City</label>
+                {{ form.city }}
+                {% if form.city.errors %}<div class="text-danger small">{{ form.city.errors.0 }}</div>{% endif %}
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label small fw-semibold">State (Sets Courier Shipping Fee)</label>
+              {{ form.state }}
+              {% if form.state.errors %}<div class="text-danger small">{{ form.state.errors.0 }}</div>{% endif %}
+            </div>
+
+            <div class="mb-2">
+              <label class="form-label small fw-semibold">Delivery Notes (Optional)</label>
+              {{ form.notes }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Order Items & Calculation -->
+        <div class="col-md-7">
+          <div class="card p-3 shadow-sm border-0 mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+              <h5 class="fw-bold mb-0"><i class="bi bi-bag-check me-2 text-primary"></i>Clothing Items</h5>
+              <button type="button" class="btn btn-sm btn-outline-primary" id="addItemBtn">
+                <i class="bi bi-plus-lg me-1"></i> Add Another Item
+              </button>
+            </div>
+
+            <div id="itemsContainer">
+              <!-- Item rows appended by JS -->
+            </div>
+          </div>
+
+          <!-- Summary card -->
+          <div class="card p-3 shadow-sm border-0 bg-light">
+            <h6 class="fw-bold mb-3 border-bottom pb-2">Order Total & Dropshipper Commission</h6>
+
+            <div class="d-flex justify-content-between mb-1 small">
+              <span class="text-muted">Clothing Retail Total:</span>
+              <span class="fw-bold text-dark" id="summarySales">RM 0.00</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2 small border-bottom pb-2">
+              <span class="text-muted">Courier Shipping Fee (Per Order):</span>
+              <span class="fw-bold" id="summaryShipping">RM 0.00</span>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <div>
+                <span class="fs-6 fw-bold">Customer Total Payable via FPX:</span>
+                <div class="text-muted small">Apparel Total + Shipping (Paid to HQ)</div>
+              </div>
+              <div class="fs-4 fw-bold text-primary" id="summaryPayable">RM 0.00</div>
+            </div>
+
+            <div class="alert alert-success d-flex justify-content-between align-items-center py-2 px-3 mb-3 small">
+              <div><i class="bi bi-cash-coin me-1"></i> <strong>Your 15% Commission:</strong></div>
+              <div class="fs-6 fw-bold text-success" id="summaryProfit">+RM 0.00</div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 py-3 fw-bold fs-6 shadow">
+              <i class="bi bi-shield-check me-1"></i> Proceed to Pay via FPX
+            </button>
+            <div class="text-center text-muted small mt-2">
+              <i class="bi bi-lock-fill"></i> Secure payment processed via CHIP Collect (FPX Online Banking)
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ catalog|json_script:"catalog-data" }}
+{{ shipping_map|json_script:"shipping-map" }}
+
+<script>
+  const catalog = JSON.parse(document.getElementById('catalog-data').textContent);
+  const shippingMap = JSON.parse(document.getElementById('shipping-map').textContent);
+  const container = document.getElementById('itemsContainer');
+  const stateSelect = document.getElementById('id_state');
+
+  let rowIndex = 0;
+
+  function renderRow() {
+    const idx = rowIndex++;
+    const row = document.createElement('div');
+    row.className = 'border rounded p-3 mb-3 bg-white position-relative item-row';
+    row.id = `row-${idx}`;
+
+    let productOptions = '<option value="">-- Select Product --</option>';
+    catalog.forEach(p => {
+      productOptions += `<option value="${p.id}">${p.name} (Cost: RM${p.cost} | SRP: RM${p.srp})</option>`;
+    });
+
+    row.innerHTML = `
+      <button type="button" class="btn-close position-absolute top-0 end-0 m-2 remove-btn" aria-label="Remove" title="Remove Item"></button>
+      <div class="row g-2">
+        <div class="col-12">
+          <label class="form-label small fw-semibold">Product</label>
+          <select class="form-select form-select-sm product-select" data-idx="${idx}">
+            ${productOptions}
+          </select>
+        </div>
+        <div class="col-md-5">
+          <label class="form-label small fw-semibold">Variant (Size / Colour)</label>
+          <select name="item_variant" class="form-select form-select-sm variant-select" data-idx="${idx}" required>
+            <option value="">-- Choose Product First --</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold">Quantity</label>
+          <input type="number" name="item_qty" class="form-control form-control-sm qty-input" min="1" value="1" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold">Selling Price (RM)</label>
+          <input type="number" step="0.01" name="item_price" class="form-control form-control-sm price-input" placeholder="0.00" required>
+        </div>
+      </div>
+      <div class="mt-2 small text-muted variant-stock-info" style="display:none;"></div>
+    `;
+
+    container.appendChild(row);
+
+    const productSelect = row.querySelector('.product-select');
+    const variantSelect = row.querySelector('.variant-select');
+    const qtyInput = row.querySelector('.qty-input');
+    const priceInput = row.querySelector('.price-input');
+    const removeBtn = row.querySelector('.remove-btn');
+    const stockInfo = row.querySelector('.variant-stock-info');
+
+    productSelect.addEventListener('change', () => {
+      const pid = parseInt(productSelect.value);
+      const prod = catalog.find(p => p.id === pid);
+      variantSelect.innerHTML = '<option value="">-- Select Variant --</option>';
+      if (prod) {
+        prod.variants.forEach(v => {
+          const disabled = v.stock <= 0 ? 'disabled' : '';
+          const stockLabel = v.stock <= 0 ? ' (Out of stock)' : ` (${v.stock} left)`;
+          variantSelect.innerHTML += `<option value="${v.id}" data-stock="${v.stock}" data-cost="${prod.cost}" ${disabled}>${v.label} - ${v.sku}${stockLabel}</option>`;
+        });
+        priceInput.value = prod.srp;
+      }
+      recalculate();
+    });
+
+    variantSelect.addEventListener('change', () => {
+      const opt = variantSelect.selectedOptions[0];
+      if (opt && opt.dataset.stock) {
+        const stock = parseInt(opt.dataset.stock);
+        stockInfo.style.display = 'block';
+        if (stock <= 5) {
+          stockInfo.innerHTML = `<span class="text-danger fw-bold"><i class="bi bi-exclamation-circle"></i> Low stock: only ${stock} unit(s) remaining!</span>`;
+        } else {
+          stockInfo.innerHTML = `<span class="text-success"><i class="bi bi-check-circle"></i> Available stock: ${stock} units.</span>`;
+        }
+        qtyInput.max = stock;
+      } else {
+        stockInfo.style.display = 'none';
+      }
+      recalculate();
+    });
+
+    qtyInput.addEventListener('input', recalculate);
+    priceInput.addEventListener('input', recalculate);
+
+    removeBtn.addEventListener('click', () => {
+      if (document.querySelectorAll('.item-row').length > 1) {
+        row.remove();
+        recalculate();
+      } else {
+        alert('An order must have at least one item.');
+      }
+    });
+
+    recalculate();
+  }
+
+  function recalculate() {
+    let subtotalCost = 0.0;
+    let totalSales = 0.0;
+
+    document.querySelectorAll('.item-row').forEach(row => {
+      const variantSelect = row.querySelector('.variant-select');
+      const qtyInput = row.querySelector('.qty-input');
+      const priceInput = row.querySelector('.price-input');
+
+      const opt = variantSelect.selectedOptions[0];
+      const qty = parseInt(qtyInput.value) || 0;
+      const sellPrice = parseFloat(priceInput.value) || 0.0;
+
+      if (opt && opt.dataset.cost) {
+        const cost = parseFloat(opt.dataset.cost) || 0.0;
+        subtotalCost += (cost * qty);
+      }
+      totalSales += (sellPrice * qty);
+    });
+
+    const state = stateSelect ? stateSelect.value : '';
+    const shippingFee = parseFloat(shippingMap[state] || 0.0);
+    const totalPayable = totalSales + shippingFee;
+    const commission = totalSales * 0.15;
+
+    const elSales = document.getElementById('summarySales');
+    if (elSales) elSales.textContent = `RM ${totalSales.toFixed(2)}`;
+
+    const elShipping = document.getElementById('summaryShipping');
+    if (elShipping) elShipping.textContent = `RM ${shippingFee.toFixed(2)}`;
+
+    const elPayable = document.getElementById('summaryPayable');
+    if (elPayable) elPayable.textContent = `RM ${totalPayable.toFixed(2)}`;
+
+    const elProfit = document.getElementById('summaryProfit');
+    if (elProfit) elProfit.textContent = `+RM ${commission.toFixed(2)}`;
+  }
+
+  document.getElementById('addItemBtn').addEventListener('click', renderRow);
+  if (stateSelect) {
+    stateSelect.addEventListener('change', recalculate);
+  }
+
+  // Init with 1 row
+  renderRow();
+</script>
+{% endblock %}

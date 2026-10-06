@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% block title %}HQ Operations Hub - Dropship Hub{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+  <div>
+    <h3 class="fw-bold mb-1"><i class="bi bi-building text-primary me-2"></i>HQ Warehouse & Fulfillment Hub</h3>
+    <p class="text-muted small mb-0">Daily 24-hour physical inventory validation and order dispatch management.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'catalog:hq_stock' %}" class="btn btn-primary btn-sm fw-semibold">
+      <i class="bi bi-pencil-square me-1"></i> Update 24h Stock
+    </a>
+    <a href="{% url 'orders:hq_orders' %}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-truck me-1"></i> Fulfillment Queue
+    </a>
+  </div>
+</div>
+
+<!-- 24-hour stock alert banner -->
+{% if freshness.is_stale %}
+  <div class="alert alert-danger d-flex align-items-center shadow-sm mb-4" role="alert">
+    <i class="bi bi-exclamation-triangle-fill fs-3 me-3 text-danger"></i>
+    <div class="flex-grow-1">
+      <h6 class="fw-bold mb-0">Daily 24-Hour Stock Update is OVERDUE!</h6>
+      <div class="small">{{ freshness.stale_count }} product variants have not been updated or verified by HQ in over 24 hours.</div>
+    </div>
+    <a href="{% url 'catalog:hq_stock' %}" class="btn btn-danger btn-sm fw-bold">Update Inventory Now</a>
+  </div>
+{% else %}
+  <div class="alert alert-success d-flex align-items-center shadow-sm mb-4" role="alert">
+    <i class="bi bi-check-circle-fill fs-3 me-3 text-success"></i>
+    <div>
+      <h6 class="fw-bold mb-0">Inventory is Verified & Fresh</h6>
+      <div class="small">All variants confirmed within the 24h window. Next scheduled check: <strong>{{ freshness.due_at|date:"d M Y, H:i" }}</strong>.</div>
+    </div>
+  </div>
+{% endif %}
+
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="card p-3 shadow-sm border-0 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-muted small text-uppercase fw-bold">Orders to Ship</span>
+        <span class="badge bg-warning-subtle text-warning p-2 rounded-circle"><i class="bi bi-box-seam fs-5"></i></span>
+      </div>
+      <div class="fs-2 fw-bold text-primary">{{ to_ship_count }}</div>
+      <div class="text-muted small">Paid by dropshippers via FPX · Ready for packing</div>
+      <div class="mt-3">
+        <a href="{% url 'orders:hq_orders' %}?status=PAID" class="btn btn-sm btn-outline-primary w-100">Open Packing Queue</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card p-3 shadow-sm border-0 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-muted small text-uppercase fw-bold">Out of Stock Variants</span>
+        <span class="badge bg-danger-subtle text-danger p-2 rounded-circle"><i class="bi bi-slash-circle fs-5"></i></span>
+      </div>
+      <div class="fs-2 fw-bold text-danger">{{ out_of_stock.count }}</div>
+      <div class="text-muted small">Variants marked with 0 units remaining</div>
+      <div class="mt-3">
+        <a href="{% url 'catalog:hq_stock' %}" class="btn btn-sm btn-outline-secondary w-100">Restock Variants</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card p-3 shadow-sm border-0 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-muted small text-uppercase fw-bold">Low Stock Warning</span>
+        <span class="badge bg-warning-subtle text-warning p-2 rounded-circle"><i class="bi bi-battery-half fs-5"></i></span>
+      </div>
+      <div class="fs-2 fw-bold text-warning">{{ low_stock.count }}</div>
+      <div class="text-muted small">Variants with 10 or fewer units in stock</div>
+      <div class="mt-3">
+        <a href="{% url 'catalog:hq_stock' %}" class="btn btn-sm btn-outline-secondary w-100">Review Inventory</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Shipped -->
+<div class="card border-0 shadow-sm overflow-hidden">
+  <div class="card-header bg-white py-3">
+    <h5 class="fw-bold mb-0">Recently Dispatched Orders</h5>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Order</th>
+          <th>Dispatched At</th>
+          <th>Dropshipper</th>
+          <th>Customer Destination</th>
+          <th>Courier & Tracking</th>
+          <th class="text-end">Slip</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in shipped_recent %}
+          <tr>
+            <td>
+              <a href="{% url 'orders:detail' pk=o.pk %}" class="fw-bold text-decoration-none">{{ o.order_no }}</a>
+            </td>
+            <td class="small text-muted">{{ o.shipped_at|date:"d M Y, H:i" }}</td>
+            <td>{{ o.dropshipper.shop_name|default:o.dropshipper.username }}</td>
+            <td>{{ o.customer_name }} ({{ o.state }})</td>
+            <td>
+              <span class="badge bg-info text-dark">{{ o.courier }}</span>
+              <code>{{ o.tracking_no }}</code>
+            </td>
+            <td class="text-end">
+              <a href="{% url 'orders:packing_slip' pk=o.pk %}" target="_blank" class="btn btn-sm btn-outline-secondary py-0 px-2" style="font-size: 0.8rem;">Print</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="6" class="text-center py-4 text-muted">No recently shipped orders yet.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

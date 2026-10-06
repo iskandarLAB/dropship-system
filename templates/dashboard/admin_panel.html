@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% block title %}Executive Admin Overview - Dropship Hub{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+  <div>
+    <h3 class="fw-bold mb-1"><i class="bi bi-shield-shaded text-primary me-2"></i>Executive Admin Overview</h3>
+    <p class="text-muted small mb-0">Total system sales, dropshipper approvals, top sellers ranking, and backend configuration.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'payouts:admin_payouts' %}" class="btn btn-primary btn-sm">
+      <i class="bi bi-wallet2 me-1"></i> Weekly Payouts (CHIP Send)
+    </a>
+    <a href="{% url 'accounts:dropshippers' %}?status=PENDING" class="btn btn-outline-primary btn-sm position-relative">
+      <i class="bi bi-people me-1"></i> Dropshippers
+      {% if pending_dropshippers.count > 0 %}
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+          {{ pending_dropshippers.count }}
+        </span>
+      {% endif %}
+    </a>
+    <a href="/admin/" target="_blank" class="btn btn-dark btn-sm">
+      <i class="bi bi-sliders me-1"></i> Django Back Office
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-lg-3">
+    <div class="card p-3 shadow-sm border-0 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-muted small text-uppercase fw-bold">This Month Revenue</span>
+        <span class="badge bg-primary-subtle text-primary p-2 rounded-circle"><i class="bi bi-graph-up-arrow fs-5"></i></span>
+      </div>
+      <div class="fs-3 fw-bold text-primary">RM {{ month_sales }}</div>
+      <div class="text-muted small">Gross clothing retail sales</div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-lg-3">
+    <div class="card p-3 shadow-sm border-0 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-muted small text-uppercase fw-bold">All-Time Revenue</span>
+        <span class="badge bg-success-subtle text-success p-2 rounded-circle"><i class="bi bi-cash-stack fs-5"></i></span>
+      </div>
+      <div class="fs-3 fw-bold text-success">RM {{ total_sales }}</div>
+      <div class="text-muted small">Total platform gross sales</div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-lg-3">
+    <div class="card p-3 shadow-sm border-0 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-muted small text-uppercase fw-bold">Pending Approvals</span>
+        <span class="badge bg-warning-subtle text-warning p-2 rounded-circle"><i class="bi bi-person-exclamation fs-5"></i></span>
+      </div>
+      <div class="fs-3 fw-bold text-warning">{{ pending_dropshippers.count }}</div>
+      <div class="text-muted small">Dropshippers waiting to join</div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-lg-3">
+    <div class="card p-3 shadow-sm border-0 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-muted small text-uppercase fw-bold">Pending 15% Commissions</span>
+        <span class="badge bg-warning-subtle text-warning p-2 rounded-circle"><i class="bi bi-wallet2 fs-5"></i></span>
+      </div>
+      <div class="fs-3 fw-bold text-warning">RM {{ pending_commissions }}</div>
+      <div class="text-muted small">Queued for next weekly bank payout batch</div>
+    </div>
+  </div>
+
+  <div class="col-sm-6 col-lg-3">
+    <div class="card p-3 shadow-sm border-0 h-100">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-muted small text-uppercase fw-bold">Inventory Status</span>
+        <span class="badge bg-info-subtle text-info p-2 rounded-circle"><i class="bi bi-clock-history fs-5"></i></span>
+      </div>
+      {% if freshness.is_stale %}
+        <div class="fs-4 fw-bold text-danger">{{ freshness.stale_count }} Stale</div>
+        <div class="text-danger small">Over 24h since HQ confirmed</div>
+      {% else %}
+        <div class="fs-4 fw-bold text-success">Up to Date</div>
+        <div class="text-muted small">All active variants checked</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Pending Dropshipper Approvals -->
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100 overflow-hidden">
+      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h5 class="fw-bold mb-0">Pending Dropshipper Approvals</h5>
+        <a href="{% url 'accounts:dropshippers' %}?status=PENDING" class="btn btn-sm btn-link text-decoration-none">View All</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Applicant</th>
+              <th>Shop Name</th>
+              <th>Contact</th>
+              <th class="text-end">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in pending_dropshippers|slice:":5" %}
+              <tr>
+                <td>
+                  <div class="fw-semibold">{{ u.get_full_name|default:u.username }}</div>
+                  <div class="small text-muted">@{{ u.username }}</div>
+                </td>
+                <td>{{ u.shop_name|default:"-" }}</td>
+                <td class="small">{{ u.email }}<br>{{ u.phone }}</td>
+                <td class="text-end">
+                  <div class="d-inline-flex gap-1">
+                    <form method="post" action="{% url 'accounts:dropshipper_action' pk=u.pk action='approve' %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <button type="submit" class="btn btn-sm btn-success py-1 px-2" title="Approve">
+                        <i class="bi bi-check-lg"></i>
+                      </button>
+                    </form>
+                    <form method="post" action="{% url 'accounts:dropshipper_action' pk=u.pk action='reject' %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2" title="Reject">
+                        <i class="bi bi-x-lg"></i>
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="4" class="text-center py-4 text-muted">No pending approvals! All caught up.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Dropshippers Ranking -->
+  <div class="col-lg-6">
+    <div class="card border-0 shadow-sm h-100 overflow-hidden">
+      <div class="card-header bg-white py-3">
+        <h5 class="fw-bold mb-0">Top Performing Dropshippers</h5>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th style="width: 40px;">#</th>
+              <th>Seller</th>
+              <th>Shop</th>
+              <th class="text-center">Orders</th>
+              <th class="text-end">Total Sales</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ds in top_dropshippers %}
+              <tr>
+                <td><strong>{{ forloop.counter }}</strong></td>
+                <td>
+                  <div class="fw-semibold">{{ ds.get_full_name|default:ds.username }}</div>
+                  <div class="small text-muted">@{{ ds.username }}</div>
+                </td>
+                <td>{{ ds.shop_name|default:"-" }}</td>
+                <td class="text-center"><span class="badge bg-light text-dark border">{{ ds.orders_count }}</span></td>
+                <td class="text-end fw-bold text-primary">RM {{ ds.total_revenue }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5" class="text-center py-4 text-muted">No sales recorded yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
